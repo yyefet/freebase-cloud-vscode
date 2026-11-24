@@ -1,0 +1,10 @@
+src/**
+test/**
+scripts/**
+RELEASING.md
+node_modules/**
+.vscode-test/**
+tsconfig.json
+**/*.map
+**/*.vsix
+pnpm-lock.yaml

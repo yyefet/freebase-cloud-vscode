@@ -1,0 +1,79 @@
+name: Publish Freebase extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact version in extensions/freebase/package.json
+        required: true
+        type: string
+      approve:
+        description: Publish this version publicly as freebasecloud.freebase-vscode
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: freebase-marketplace-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Only an explicit action on the repository's default branch can publish.
+    if: inputs.approve && github.repository == 'yyefet/freebase-cloud-vscode' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check approved identity and version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          node <<'NODE'
+          const m = require('./extensions/freebase/package.json');
+          if (m.publisher !== 'freebasecloud' || m.name !== 'freebase-vscode' ||
+              !/^\d+\.\d+\.\d+$/.test(m.version) || m.version !== process.env.RELEASE_VERSION) {
+            throw new Error('Publisher, extension name or approved version mismatch');
+          }
+          NODE
+      - run: pnpm install --frozen-lockfile --filter freebase-vscode...
+      - run: pnpm --filter freebase-vscode run typecheck
+      - run: pnpm --filter freebase-vscode run test
+      - run: pnpm --filter freebase-vscode run package
+      - name: Record exact package checksum
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          cd generated-artifacts
+          sha256sum "freebase-vscode-${RELEASE_VERSION}.vsix" > SHA256SUMS
+          cat SHA256SUMS >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep direct-download package even if submission fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: freebase-vscode-${{ inputs.version }}
+          path: |
+            generated-artifacts/*.vsix
+            generated-artifacts/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
+      - name: Submit the exact VSIX using Trusted Publishing
+        working-directory: extensions/freebase
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: pnpm exec vsce publish --oidc --packagePath "../../generated-artifacts/freebase-vscode-${RELEASE_VERSION}.vsix"
+      - name: Verify public listing and version
+        run: node extensions/freebase/scripts/verify-marketplace.cjs

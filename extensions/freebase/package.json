@@ -1,0 +1,162 @@
+{
+  "name": "freebase-vscode",
+  "displayName": "Freebase — Your databases, in your editor",
+  "description": "Create private hosted databases, query real data, share and configure projects without leaving VS Code.",
+  "version": "0.1.2",
+  "publisher": "freebasecloud",
+  "homepage": "https://freebase.cloud/vscode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yyefet/freebase-cloud-vscode.git",
+    "directory": "extensions/freebase"
+  },
+  "bugs": {
+    "url": "https://freebase.cloud/contact"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Azure",
+    "Other"
+  ],
+  "keywords": [
+    "database",
+    "postgresql",
+    "mongodb",
+    "mysql",
+    "freebase"
+  ],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onView:freebase.explorer"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Browsing is available. Project credential setup requires workspace trust."
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm run build && node --experimental-strip-types --test test/*.test.ts test/*.test.cjs",
+    "package": "pnpm run build && node scripts/package.cjs"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "freebase",
+          "title": "Freebase",
+          "icon": "media/freebase.svg"
+        }
+      ]
+    },
+    "views": {
+      "freebase": [
+        {
+          "id": "freebase.explorer",
+          "name": "Databases",
+          "icon": "media/freebase.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "freebase.signIn",
+        "title": "Freebase: Sign In",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "freebase.signOut",
+        "title": "Freebase: Sign Out"
+      },
+      {
+        "command": "freebase.refresh",
+        "title": "Freebase: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "freebase.createDatabase",
+        "title": "Freebase: Create Database",
+        "icon": "$(add)"
+      },
+      {
+        "command": "freebase.open",
+        "title": "Freebase: Open Database"
+      },
+      {
+        "command": "freebase.runQuery",
+        "title": "Freebase: Run Query"
+      },
+      {
+        "command": "freebase.ask",
+        "title": "Freebase: Ask Your Data"
+      },
+      {
+        "command": "freebase.configure",
+        "title": "Freebase: Configure Project"
+      },
+      {
+        "command": "freebase.website",
+        "title": "Freebase: Open on Website",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "freebase.sharing",
+        "title": "Freebase: Sharing",
+        "icon": "$(organization)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "freebase.signIn",
+          "when": "view == freebase.explorer",
+          "group": "navigation"
+        },
+        {
+          "command": "freebase.createDatabase",
+          "when": "view == freebase.explorer",
+          "group": "navigation"
+        },
+        {
+          "command": "freebase.refresh",
+          "when": "view == freebase.explorer",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "freebase.configure",
+          "when": "view == freebase.explorer && viewItem == database"
+        },
+        {
+          "command": "freebase.sharing",
+          "when": "view == freebase.explorer && viewItem =~ /database|object/"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Freebase",
+      "properties": {
+        "freebase.siteUrl": {
+          "type": "string",
+          "default": "https://freebase.cloud",
+          "scope": "application",
+          "description": "Trusted Freebase HTTPS origin. Application-level only: repositories cannot redirect credentials."
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/vscode": "^1.96.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.1.1",
+    "esbuild": "0.27.3",
+    "typescript": "~5.9.3"
+  }
+}
