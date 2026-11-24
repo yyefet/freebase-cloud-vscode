@@ -21,7 +21,12 @@ export class Explorer implements vscode.TreeDataProvider<Entry> {
   private changed = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.changed.event;
   private choices = new Map<string, string>();
-  constructor(private api: FreebaseApi) {}
+  constructor(private api: FreebaseApi, private state?: vscode.Memento) {}
+  private importedKey(accountId: string) { return `freebase.imported:${this.api.origin}:${accountId}`; }
+  async rememberImported(accountId: string, ids: string[]) {
+    const key = this.importedKey(accountId);
+    await this.state?.update(key, [...new Set([...(this.state.get<string[]>(key, [])), ...ids])]);
+  }
   refresh() { this.changed.fire(); }
   clear() { this.choices.clear(); this.refresh(); }
   getTreeItem(item: Entry) { return item; }
@@ -45,14 +50,28 @@ export class Explorer implements vscode.TreeDataProvider<Entry> {
   async getChildren(entry?: Entry): Promise<Entry[]> {
     if (!(await this.api.connected())) {
       const login = new Entry("Sign in to Freebase", "account");
-      login.command = { command: "freebase.signIn", title: "Sign In" }; return [login];
+      login.command = { command: "freebase.signIn", title: "Sign In" };
+      const importEntry = new Entry("Import existing databases…", "import");
+      importEntry.command = { command: "freebase.importExisting", title: "Import Existing Databases" };
+      return [login, importEntry];
     }
     try {
       if (!entry) {
-        const account = await this.api.service<{ email: string; firstName: string }>("/account");
-        return [new Entry(account.email || account.firstName || "Signed in", "account"), new Entry("Owned databases", "group"), new Entry("Shared with me", "group")];
+        const account = await this.api.service<{ id: string; email: string; firstName: string }>("/account");
+        return [new Entry(account.email || account.firstName || "Signed in", "account"), new Entry("Imported databases", "group"), new Entry("Owned databases", "group"), new Entry("Shared with me", "group")];
       }
       if (entry.kind === "group") {
+        if (entry.label === "Imported databases") {
+          const account = await this.api.service<{ id: string }>("/account");
+          const ids = new Set(this.state?.get<string[]>(this.importedKey(account.id), []) ?? []);
+          // Always filter against current server visibility: revoked shares do
+          // not survive as stale, imported shortcuts.
+          const list = (await this.instances()).filter(i => ids.has(i.id));
+          if (list.length) return list.map(i => new Entry(i.name, "database", i));
+          const item = new Entry("Import existing databases…", "import");
+          item.command = { command: "freebase.importExisting", title: "Import Existing Databases" };
+          return [item];
+        }
         const owned = entry.label === "Owned databases";
         const list = (await this.instances()).filter(i => (i.access === "owner") === owned);
         return list.length ? list.map(i => new Entry(i.name, "database", i)) : [new Entry(owned ? "No databases yet — Create Database" : "No accepted shared databases", "empty")];

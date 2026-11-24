@@ -73,7 +73,7 @@ workflow publishes with `vsce publish --oidc`; it does not fall back to a PAT.
   auto-update settings and `engines.vscode` compatibility.
 - Direct VSIX installs normally disable auto-updates. Users can enable them for
   this extension, install from Marketplace, or manually install a newer VSIX.
-- Versions through 0.1.1 had publisher `freebase-cloud`. They cannot automatically
+- Earlier direct VSIX builds used publisher `freebase-cloud`. They cannot automatically
   migrate to `freebasecloud`: uninstall the old extension, install the approved
   identity, and sign in again. Do not run both copies simultaneously.
 - The website only offers Marketplace install links after a successful public

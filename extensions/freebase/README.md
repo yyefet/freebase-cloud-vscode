@@ -176,3 +176,29 @@ The package is generated under `generated-artifacts/`, outside Git/deploy output
 Release upload tooling publishes immutable bytes to App Storage and records their
 SHA-256 in the API release manifest. See `RELEASING.md` in the source repository
 for the GitHub Trusted Publishing setup and release procedure.
+
+### Import existing Freebase databases
+
+1. Run **Freebase: Import Existing Databases** from the Command Palette or click
+   the import icon in the Freebase sidebar.
+2. Complete website sign-in/approval if not already connected.
+3. Paste an existing API key from that same account into the password prompt.
+4. Select one or more existing owned or accepted shared databases.
+5. After verification, find them under **Imported databases**. Open one to query
+   and edit the same remote data, subject to your current permissions.
+
+“Import” adds shortcuts; it does not copy data, create an instance, generate or
+revoke keys, or use an additional instance/key allowance. An invalid, revoked or
+different-account key is rejected. The raw key is stored only in VS Code
+SecretStorage until you explicitly choose **Configure Project** and consent to
+writing `.env`; unrelated project files are not changed by importing.
+
+The imported key is reused for future project setup. Existing `.env` files are
+not changed automatically. Editor queries still use the separately approved,
+revocable editor session; revoking a project key does not sign out that session.
+Imported shortcuts are scoped to the site and account, and disappear from the
+visible list when access is revoked. Owned/shared groups still show the same
+instances; no extra copies are created.
+
+The website must have the matching extension service release published before
+the extension can sign in. Downloading does not silently install an extension.

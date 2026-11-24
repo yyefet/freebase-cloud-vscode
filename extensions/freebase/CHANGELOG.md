@@ -2,6 +2,8 @@
 
 ## 0.1.2
 
+- Import existing owned/shared databases using a same-account API key after website approval; no new instances or keys are created.
+
 Prepared Marketplace publishing under `freebasecloud` with a manually approved
 GitHub Trusted Publishing workflow. Kept direct VSIX downloads. Older packages
 under `freebase-cloud` have a different identity; uninstall the old extension and

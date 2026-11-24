@@ -4,11 +4,12 @@ import { Explorer, Entry, ENGINES } from "./explorer";
 import { DatabasePanel } from "./panel";
 import { configureProject } from "./project";
 import { sharing } from "./sharing";
+import { importExistingDatabases } from "./import-existing";
 
 export function activate(context: vscode.ExtensionContext) {
   let explorer: Explorer;
   const api = new FreebaseApi(context, () => { DatabasePanel.closeAll(); explorer?.clear(); });
-  explorer = new Explorer(api);
+  explorer = new Explorer(api, context.globalState);
   context.subscriptions.push(explorer, vscode.window.registerTreeDataProvider("freebase.explorer", explorer));
   const register = (name: string, action: (entry?: Entry) => unknown) => context.subscriptions.push(
     vscode.commands.registerCommand(`freebase.${name}`, async (entry?: Entry) => {
@@ -23,6 +24,24 @@ export function activate(context: vscode.ExtensionContext) {
   register("signIn", async () => { await api.signIn(); explorer.refresh(); });
   register("signOut", () => api.signOut());
   register("refresh", () => explorer.refresh());
+  register("importExisting", async () => {
+    const imported = await importExistingDatabases(api, context, explorer);
+    if (!imported?.length) return;
+    await vscode.commands.executeCommand("workbench.view.extension.freebase");
+    const action = await vscode.window.showInformationMessage(
+      `${imported.length} existing database${imported.length === 1 ? "" : "s"} connected. No new instances or keys created. Your existing key is ready for optional project setup.`,
+      "Open database", "Configure project");
+    if (!action) return;
+    const instance = imported.length === 1 ? imported[0] : (await vscode.window.showQuickPick(
+      imported.map(instance => ({ label: instance.name, description: instance.engine, instance })),
+      { title: "Choose an imported database" }))?.instance;
+    if (!instance) return;
+    if (action === "Open database") await open(new Entry(instance.name, "database", instance));
+    else {
+      const engine = await explorer.engine(instance);
+      if (engine) await configureProject(api, context, instance, engine);
+    }
+  });
   register("open", entry => open(entry));
   register("ask", entry => open(entry));
   register("runQuery", entry => open(entry, "native"));
